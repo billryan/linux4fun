@@ -1906,7 +1906,11 @@ rtl8101_rx_vlan_skb(struct rtl8101_private *tp,
     }
 #else
     if (opts2 & RxVlanTag)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(3,10,0)
         __vlan_hwaccel_put_tag(skb, swab16(opts2 & 0xffff));
+#else
+        __vlan_hwaccel_put_tag(skb, htons(ETH_P_8021Q), swab16(opts2 & 0xffff));
+#endif
 #endif
 
     desc->opts2 = 0;
@@ -1967,7 +1971,11 @@ static int rtl8101_hw_set_features(struct net_device *dev,
     else
         tp->cp_cmd &= ~RxChkSum;
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(3,10,0)
     if (dev->features & NETIF_F_HW_VLAN_RX)
+#else
+    if (dev->features & NETIF_F_HW_VLAN_CTAG_RX)
+#endif
         tp->cp_cmd |= RxVlan;
     else
         tp->cp_cmd &= ~RxVlan;
@@ -7292,7 +7300,11 @@ rtl8101_init_one(struct pci_dev *pdev,
 #endif
 
 #ifdef CONFIG_R8101_VLAN
+#if LINUX_VERSION_CODE < KERNEL_VERSION(3,10,0)
     dev->features |= NETIF_F_HW_VLAN_TX | NETIF_F_HW_VLAN_RX;
+#else
+    dev->features |= NETIF_F_HW_VLAN_CTAG_TX | NETIF_F_HW_VLAN_CTAG_RX;
+#endif
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,22)
     dev->vlan_rx_kill_vid = rtl8101_vlan_rx_kill_vid;
 #endif//LINUX_VERSION_CODE < KERNEL_VERSION(2,6,22)
@@ -7305,7 +7317,11 @@ rtl8101_init_one(struct pci_dev *pdev,
 #else
     dev->features |= NETIF_F_RXCSUM | NETIF_F_SG;
     dev->hw_features = NETIF_F_SG | NETIF_F_IP_CSUM | NETIF_F_TSO |
+#if LINUX_VERSION_CODE < KERNEL_VERSION(3,10,0)
                        NETIF_F_RXCSUM | NETIF_F_HW_VLAN_TX | NETIF_F_HW_VLAN_RX;
+#else
+                       NETIF_F_RXCSUM | NETIF_F_HW_VLAN_CTAG_TX | NETIF_F_HW_VLAN_CTAG_RX;
+#endif
     dev->vlan_features = NETIF_F_SG | NETIF_F_IP_CSUM | NETIF_F_TSO |
                          NETIF_F_HIGHDMA;
 #endif
